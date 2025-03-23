@@ -1,7 +1,63 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { assets, plans } from '../assets/assets'
+import { Appcontext } from '../context/appcontext'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '@clerk/clerk-react'
+import { toast } from 'react-toastify'
+import axios from 'axios'
 
 const BuyCredits = () => {
+  const {backendurl,loadcreditdata}=useContext(Appcontext)
+  const navigate=useNavigate()
+  const{getToken}=useAuth()
+  const initpay=async(order)=>{
+
+    const options={
+    key:import.meta.env.VITE_RAZORPAY_KEY_ID,
+    amount:order.amount,
+    currency:order.currency,
+    name:'credit Payment',
+    description:'credit Payment',
+      order_id:order.id,
+      receipt:order.receipt,
+      handler:async(response)=>{
+        const token= await getToken()
+        try {
+          const {data}=await axios.post(backendurl+"/api/user/verifyRazorpay",response,{headers:{token}})
+          if(data.success){
+            loadcreditdata()
+            navigate('/')
+            toast.success('Credits Added')
+          }
+        } catch (error) {
+          console.log(error)
+          toast.error(error)
+          
+        }
+      }
+    }
+   const rzp=new window.Razorpay(options)
+   rzp.open()
+  }
+
+ const paymentRazorpay=async(planId)=>{
+  try {
+     const token=await getToken()
+     const {data}=await axios.post(backendurl+'/api/user/pay-razorpay',{planId},{headers:{token}})
+     if(data.success){
+      initpay(data.order)
+     }
+
+  } catch (error) {
+    console.log(error);
+    toast.error(error.message)
+    
+  }
+ }
+
+
+
+
   return (
     <div className='min-h-[80vh] text-center  mb-10 pt-14'>
       <button className='border border-gray-400 px-10 py-2 rounded-full mb-6'>Our Plans</button>
@@ -13,9 +69,9 @@ const BuyCredits = () => {
             <p className='mt-3 font-semibold'>{item.id}</p>
             <p className='text-sm'>{item.desc}</p>
             <p className='mt-6'>
-              <span className='text-3xl font-medium'>${item.price}</span>/{item.credits} Credits
+              <span className='text-3xl font-medium'>₹{item.price}</span>/{item.credits} Credits
             </p>
-            <button className='w-full rounded-md bg-black text-white mt-8 text-sm  min-w-52 py-2.5'>purchase</button>
+            <button onClick={()=>paymentRazorpay(item.id)} className='w-full rounded-md bg-black text-white mt-8 text-sm  min-w-52 py-2.5'>purchase</button>
           </div>
         ))}
       </div>
