@@ -1,7 +1,4 @@
 import mongoose from "mongoose";
-import { type } from "os";
-import { date } from "zod";
-
 
 const transactionschema=new mongoose.Schema({
     clerkId:{type:String,required:true},
